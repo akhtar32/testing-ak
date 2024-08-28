@@ -1,0 +1,56 @@
+name: Gold Bazar Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to FTP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Check if .env exists
+        run: |
+          if [ ! -f .env ]; then
+            cp .env.example .env
+          else
+            echo ".env file already exists, skipping creation."
+          fi
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Install Composer dependencies
+        run: composer install --ignore-platform-reqs --no-interaction --no-progress
+
+      - name: Generate key if .env was created
+        run: |
+          if [ ! -f .env ]; then
+            php artisan key:generate --no-interaction
+            php artisan passport:keys --no-interaction
+          else
+            echo "Skipping artisan key:generate and passport:keys since .env file already existed."
+          fi
+      - name: Generate storage link if .env was created
+        run: |
+          if [ ! -f .env ]; then
+            php artisan storage:link --no-interaction
+          else
+            echo "Skipping artisan storage:link since .env file already existed."
+          fi
+      - name: Set directory permissions
+        run: chmod -R 777 storage bootstrap/cache
+
+      - name: Deploy to FTP
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: 
+          username: 
+          password: 
+          server-dir: /
